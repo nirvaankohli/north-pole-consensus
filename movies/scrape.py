@@ -21,6 +21,36 @@ class scraper:
 
         return self.selected_df
 
+    def by_max_rating(self, max_rating):
+        
+        self.selected_df = self.df[self.df['Rating'] <= max_rating]
+
+        return self.selected_df
+
+    def by_max_year(self, max_year):
+        
+        self.selected_df = self.df[self.df['Year'] <= max_year]
+
+        return self.selected_df
+
+    def by_specific_title(self, title):
+        
+        self.selected_df = self.df[self.df['Title'].str.contains(title, case=False, na=False)]
+
+        return self.selected_df
+    
+    def by_specific_year(self, year):
+        
+        self.selected_df = self.df[self.df['Year'] == year]
+
+        return self.selected_df
+
+    def by_specific_rating(self, rating):
+        
+        self.selected_df = self.df[self.df['Rating'] == rating]
+
+        return self.selected_df
+
     def by_min_rating_and_year(self, min_rating, min_year):
         
         self.selected_df = self.df[(self.df['Rating'] >= min_rating) & (self.df['Year'] >= min_year)]
@@ -44,10 +74,16 @@ class scraper:
         else:   
 
             return self.selected_df[self.selected_df['Title'].str.contains(priority, case=False, na=False)].head(pool).sample(n=1)
-
+    def max_min_rating(self):
+        
+        max_rating = self.df['Rating'].max()
+        min_rating = self.df['Rating'].min()
+        
+        return max_rating, min_rating
 
 if __name__ == "__main__":
     
     scraper = scraper()
     scraper.by_min_rating_and_year(5, 2000)
-    print(scraper.get_random_movie("Rating", 1))
+    print(scraper.get_random_movie("Rating", 10))
+    print(scraper.max_min_rating())
