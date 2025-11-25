@@ -2,6 +2,7 @@ import requests
 from bs4 import BeautifulSoup
 import time
 import pandas as pd
+from pathlib import Path
 
 def scrape_list(list_id, num_pages):
     
@@ -45,10 +46,10 @@ def main():
     total = 1200
     per_page = 25
     num_pages = (total // per_page) - 1
-    movies = scrape_list("ls040154031", num_pages)
+    movies = scrape_list("ls590503046", num_pages)
     
     df = pd.DataFrame(movies)
-    df.to_csv("movies.csv", index=False)
+    df.to_csv(Path(__file__).parent / "results" / "movies.csv", index=False)
 
     print(df.head(5))
     print(df.shape)
