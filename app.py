@@ -8,6 +8,10 @@ ENV_PATH = Path(__file__).parent / ".env"
 load_dotenv(ENV_PATH)
 
 app = Flask(__name__)
-app.config['SECRET_KEY'] = os.getenv('SECRET_KEY')
+app.config["SECRET_KEY"] = os.getenv("SECRET_KEY")
 socketio = SocketIO(app)
 
+
+@app.route("/")
+def index():
+    return render_template("index.html")
