@@ -48,7 +48,7 @@ def main():
 
     total = 300
     per_page = 25
-    num_pages = (total // per_page) - 1
+    num_pages = (total // per_page) 
     movies = scrape_list("ls590503046", num_pages)
 
     df = pd.DataFrame(movies)

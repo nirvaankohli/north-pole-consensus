@@ -1,5 +1,8 @@
 import pandas as pd
 from pathlib import Path
+from dotenv import load_dotenv
+import os
+import requests
 
 class scraper:
 
@@ -8,6 +11,11 @@ class scraper:
         self.movie_path = Path(__file__).parent / "results" / "movies.csv"        
         self.base_url = "http://www.omdbapi.com/"
         self.df = pd.read_csv(self.movie_path)
+        if api_key == "use_local":
+            load_dotenv()
+            self.api_key = os.getenv("OMDB_API_KEY")
+        else:
+            self.api_key = api_key
 
     def by_min_rating(self, min_rating):
         
@@ -81,9 +89,58 @@ class scraper:
         
         return max_rating, min_rating
 
+    def query(self, query):
+
+        self.selected_df = self.df[self.df['Title'].str.contains(query, case=False, na=False)]
+
+        return self.selected_df
+
+    def get_all(self):
+
+        return self.df
+    
+    def get_info_from_params(self, params):
+
+        params["apikey"] = self.api_key
+
+        r = requests.get(f"{self.base_url}", params=params)
+        data = r.json()
+
+        return data
+
+    def get_info_from_title(self, title):
+
+        params = {"t": title}
+
+        return self.get_info_from_params(params)
+
+    def get_info_from_id(self, id):
+
+        params = {"i": id}
+
+        return self.get_info_from_params(params)
+
+    def get_info_from_search(self, search, y=None):
+
+        params = {"s": search}
+
+        if y:
+            params["y"] = y
+
+        return self.get_info_from_params(params)
+
+    def get_info_from_list(self, l, year=None):
+
+        params = {"s": l}
+
+        if year:
+            params["y"] = year
+
+        return self.get_info_from_params(params)
+
 if __name__ == "__main__":
     
     scraper = scraper()
     scraper.by_min_rating_and_year(5, 2000)
-    print(scraper.get_random_movie("Rating", 10))
+    print(scraper.get_info_from_list("Home Alone", 1990))
     print(scraper.max_min_rating())
