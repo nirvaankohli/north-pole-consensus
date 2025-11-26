@@ -2,23 +2,17 @@
 
 <form method="post" class="forms">
 
-    <h3>Enter a Movie Room</h3>
+    <h3>What's your name?</h3>
     <div>
         <label>Username</label>
         <input type="text" placeholder="Enter your username" name="name" value="{{ name }}" required>
     </div>
 
-    <div class="join">
-
-        <input type="text" placeholder="Enter a room code" name="code" value="{{ code }}" required>
-        <button type="submit" name="join">Join</button>
-
-    </div>
     <button type="submit" name="create" formnovalidate>Create a Room</button>
 
     {% if error %}
 
-        <p>{{ error }}</p>
+    <p>{{ error }}</p>
 
     {% endif %}
 

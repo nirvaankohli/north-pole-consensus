@@ -1,0 +1,70 @@
+@import url("https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;800&family=Libre+Baskerville:ital,wght@0,400;0,700;1,400&display=swap");
+
+:root {
+    /* base palette (kept from original) */
+    --dark: #191919;
+    --light: #ccd4db;
+    --primary: #736ee1;
+    --secondary: #eb5855;
+    --glass: rgba(255, 255, 255, 0.04);
+    --muted: #9aa6b2;
+    --danger: #ff6b6b;
+    --mono: "Courier New", Courier, monospace;
+    color-scheme: dark;
+    --bg: var(--dark);
+    --fg: var(--light);
+    --panel-bg: rgba(255, 255, 255, 0.02);
+    --panel-border: rgba(255, 255, 255, 0.04);
+    --panel-inset: rgba(255, 255, 255, 0.01);
+    --panel-shadow: rgba(2, 6, 23, 0.6);
+    --logo-bg: var(--primary);
+    --logo-fg: #02122a;
+    --logo-shadow: rgba(115, 110, 225, 0.12);
+    --title-color: var(--primary);
+    --button-bg: var(--primary);
+    --button-fg: #02122a;
+    --maze-bg: rgba(2, 6, 23, 0.2);
+    --maze-border: rgba(255, 255, 255, 0.03);
+    --maze-pre-bg: rgba(255, 255, 255, 0.01);
+    --grid-line: rgba(255, 255, 255, 0.01);
+    --success: #2ecc71;
+
+    /* solid backgrounds (no transparency) */
+    --panel-bg-solid: #0b1220;
+
+    /* neon shadows */
+    --neon-1: rgba(115, 110, 225, 0.14);
+    --neon-2: rgba(115, 110, 225, 0.06);
+
+    /* compatibility aliases */
+    --accent: var(--primary);
+    --accent-2: var(--secondary);
+}
+
+* {
+    box-sizing: border-box;
+}
+
+*,
+*::before,
+*::after {
+    transition: background-color 200ms ease, color 200ms ease,
+        border-color 200ms ease, box-shadow 200ms ease, transform 150ms ease,
+        opacity 200ms ease;
+}
+
+html,
+body {
+    height: 100%;
+}
+
+body {
+    margin: 0;
+    font-family: Inter, "Libre Baskerville", system-ui, -apple-system, "Segoe UI",
+        Roboto, "Helvetica Neue", Arial;
+    background-color: var(--bg);
+    color: var(--fg);
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    padding: 2rem;
+}
