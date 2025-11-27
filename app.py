@@ -391,7 +391,6 @@ def prompt_name():
                     error="This room has already started. You cannot join.",
         
                 )
-            )
             rooms[room]["members"][session["member_id"]] = default_member_rooms(name)
             update_rooms(rooms)
 

@@ -21,7 +21,7 @@
           {% endif %}
           <div class="movie-info">
             <h3>{{movie.title}}</h3>
-            <p class="movie-meta">{{movie.year}} • ⭐ {{movie.rating}}</p>
+            <p class="movie-meta">{{movie.year}} <svg class="inline-icon star-icon" viewBox="0 0 24 24" fill="currentColor"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg> {{movie.rating}}</p>
             {% if movie.genre and movie.genre != 'N/A' %}
             <p class="movie-genre">{{movie.genre}}</p>
             {% endif %} {% if movie.plot and movie.plot != 'No description
@@ -33,17 +33,33 @@
       </div>
       {% endfor %}
       <div id="no-more-cards" class="no-cards" style="display: none">
-        <p>🎬</p>
+        <div class="no-cards-icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <rect x="2" y="2" width="20" height="20" rx="2.18" ry="2.18"/>
+            <line x1="7" y1="2" x2="7" y2="22"/>
+            <line x1="17" y1="2" x2="17" y2="22"/>
+            <line x1="2" y1="12" x2="22" y2="12"/>
+            <line x1="2" y1="7" x2="7" y2="7"/>
+            <line x1="2" y1="17" x2="7" y2="17"/>
+            <line x1="17" y1="7" x2="22" y2="7"/>
+            <line x1="17" y1="17" x2="22" y2="17"/>
+          </svg>
+        </div>
         <p>No more movies!</p>
         <p class="small">Wait for others to rate movies...</p>
       </div>
     </div>
     <div class="swipe-buttons">
       <button class="btn-dislike" onclick="swipeLeft()">
-        <span class="icon">✕</span>
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3">
+          <line x1="18" y1="6" x2="6" y2="18"/>
+          <line x1="6" y1="6" x2="18" y2="18"/>
+        </svg>
       </button>
       <button class="btn-like" onclick="swipeRight()">
-        <span class="icon">✓</span>
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3">
+          <polyline points="20 6 9 17 4 12"/>
+        </svg>
       </button>
     </div>
   </div>
@@ -88,7 +104,7 @@
         <button
           type="button"
           onClick="sendTrue()"
-          style="background-color: green; color: white"
+          class="btn-true"
           id="true-btn"
           {%
           if
@@ -98,12 +114,15 @@
           endif
           %}
         >
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <polyline points="20 6 9 17 4 12"/>
+          </svg>
           True
         </button>
         <button
           type="button"
           onClick="sendFalse()"
-          style="background-color: red; color: white"
+          class="btn-false"
           id="false-btn"
           {%
           if
@@ -113,13 +132,26 @@
           endif
           %}
         >
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <line x1="18" y1="6" x2="6" y2="18"/>
+            <line x1="6" y1="6" x2="18" y2="18"/>
+          </svg>
           False
         </button>
       </div>
 
       {% if not chat_started %}
       <div class="survey-form">
-        <h3>Survey</h3>
+        <h3>
+          <svg class="inline-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+            <polyline points="14 2 14 8 20 8"/>
+            <line x1="16" y1="13" x2="8" y2="13"/>
+            <line x1="16" y1="17" x2="8" y2="17"/>
+            <polyline points="10 9 9 9 8 9"/>
+          </svg>
+          Survey
+        </h3>
         <label for="preferences">Any preferences? (genres, actors, etc.)</label>
         <textarea
           id="preferences"
@@ -137,15 +169,23 @@
           placeholder="7.0"
         />
 
-        <button onclick="submitSurvey()">Submit Survey</button>
+        <button onclick="submitSurvey()" class="btn-submit-survey">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <polyline points="20 6 9 17 4 12"/>
+          </svg>
+          Submit Survey
+        </button>
       </div>
       {% endif %} {% if is_host and not chat_started %}
       <div style="margin-top: 10px">
         <button
           id="start-chat-btn"
           onClick="startChat()"
-          style="background-color: blue; color: white"
+          class="btn-start-chat"
         >
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <polygon points="5 3 19 12 5 21 5 3"/>
+          </svg>
           Start Chat
         </button>
       </div>
@@ -201,8 +241,6 @@
       document.getElementById("false-btn").disabled = false;
       const startBtn = document.getElementById("start-chat-btn");
       if (startBtn) startBtn.style.display = "none";
-
-      // Reload page to show movies
       location.reload();
   });
 
@@ -230,7 +268,6 @@
       alert('Survey submitted!');
   };
 
-  // Tinder-style swipe functionality
   let isDragging = false;
   let startX = 0;
   let currentX = 0;
@@ -238,7 +275,6 @@
 
   function initCard(card) {
       if (!card) return;
-
       card.addEventListener('mousedown', startDrag);
       card.addEventListener('touchstart', startDrag);
   }
@@ -246,14 +282,10 @@
   function startDrag(e) {
       const card = e.currentTarget;
       if (card !== getTopCard()) return;
-
       isDragging = true;
       currentCard = card;
       startX = e.type === 'mousedown' ? e.clientX : e.touches[0].clientX;
-
-      // Disable transition during drag
       currentCard.style.transition = 'none';
-
       document.addEventListener('mousemove', drag);
       document.addEventListener('touchmove', drag);
       document.addEventListener('mouseup', endDrag);
@@ -262,15 +294,11 @@
 
   function drag(e) {
       if (!isDragging || !currentCard) return;
-
       e.preventDefault();
       currentX = e.type === 'mousemove' ? e.clientX : e.touches[0].clientX;
       const deltaX = currentX - startX;
       const rotation = deltaX * 0.1;
-
       currentCard.style.transform = `translateX(${deltaX}px) rotate(${rotation}deg)`;
-
-      // Visual feedback
       if (deltaX > 50) {
           currentCard.style.borderColor = '#2ecc71';
       } else if (deltaX < -50) {
@@ -282,31 +310,23 @@
 
   function endDrag(e) {
       if (!isDragging || !currentCard) return;
-
       isDragging = false;
       const deltaX = currentX - startX;
-
-      // Re-enable transition
       currentCard.style.transition = '';
-
       document.removeEventListener('mousemove', drag);
       document.removeEventListener('touchmove', drag);
       document.removeEventListener('mouseup', endDrag);
       document.removeEventListener('touchend', endDrag);
-
       if (Math.abs(deltaX) > 100) {
-          // Swipe threshold met
           if (deltaX > 0) {
               swipeRight();
           } else {
               swipeLeft();
           }
       } else {
-          // Return to center
           currentCard.style.transform = '';
           currentCard.style.borderColor = '#ccc';
       }
-
       currentCard = null;
   }
 
@@ -318,32 +338,26 @@
   function swipeRight() {
       const card = getTopCard();
       if (!card) return;
-
       const movieId = card.dataset.movieId;
       card.style.transform = 'translateX(1000px) rotate(30deg)';
       card.style.opacity = '0';
-
       setTimeout(() => {
           card.remove();
           checkNoCards();
       }, 300);
-
       socket.emit('movie_choice', { movie_id: movieId, choice: 'like' });
   }
 
   function swipeLeft() {
       const card = getTopCard();
       if (!card) return;
-
       const movieId = card.dataset.movieId;
       card.style.transform = 'translateX(-1000px) rotate(-30deg)';
       card.style.opacity = '0';
-
       setTimeout(() => {
           card.remove();
           checkNoCards();
       }, 300);
-
       socket.emit('movie_choice', { movie_id: movieId, choice: 'dislike' });
   }
 
@@ -357,30 +371,22 @@
       }
   }
 
-  // Initialize movie cards only if they exist (chat has started)
   const movieCards = document.querySelectorAll('.movie-card');
   if (movieCards.length > 0) {
     movieCards.forEach(card => initCard(card));
   }
 
-  // Listen for feed updates from other users
   socket.on('feed_update', (data) => {
-      console.log('Feed updated by another user:', data.member_id);
       socket.emit('get_updated_feed');
   });
 
-  // Receive and render updated feed
   socket.on('updated_feed', (data) => {
       const cardStack = document.getElementById('card-stack');
-      if (!cardStack) return; // Only update if movie section exists
-
+      if (!cardStack) return;
       const existingIds = new Set(
           Array.from(cardStack.querySelectorAll('.movie-card')).map(card => card.dataset.movieId)
       );
-
       const currentZIndex = cardStack.querySelectorAll('.movie-card').length;
-
-      // Add new recommended movies to bottom of stack
       data.movies.forEach((movie, idx) => {
           if (!existingIds.has(movie.id)) {
               const card = document.createElement('div');
@@ -396,30 +402,25 @@
               const plotHTML = movie.plot && movie.plot !== 'No description available.'
                   ? `<p class="movie-plot">${movie.plot}</p>`
                   : '';
-
               card.innerHTML = `
                   <div class="movie-poster">
                       ${posterHTML}
                       <div class="movie-info">
                           <h3>${movie.title}</h3>
-                          <p class="movie-meta">${movie.year} • ⭐ ${movie.rating}</p>
+                          <p class="movie-meta">${movie.year} <svg class="inline-icon star-icon" viewBox="0 0 24 24" fill="currentColor"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg> ${movie.rating}</p>
                           ${genreHTML}
                           ${plotHTML}
                       </div>
                   </div>
               `;
-
-              // Insert at beginning (bottom of stack)
               const noCardsMsg = document.getElementById('no-more-cards');
               cardStack.insertBefore(card, noCardsMsg);
               initCard(card);
           }
       });
-
       checkNoCards();
   });
 
-  // Load existing messages
   {% for msg in messages %}
       createMessage("{{msg.name}}", "{{msg.message}}");
   {% endfor %}

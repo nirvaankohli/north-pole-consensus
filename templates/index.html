@@ -1,27 +1,86 @@
 {% extends 'base.html' %} {% block content %}
+<div class="landing-container">
+    <header class="landing-header">
+        <div class="logo">
+            <svg class="logo-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M19.82 2H4.18A2.18 2.18 0 0 0 2 4.18v15.64A2.18 2.18 0 0 0 4.18 22h15.64A2.18 2.18 0 0 0 22 19.82V4.18A2.18 2.18 0 0 0 19.82 2Z"/>
+                <circle cx="12" cy="12" r="3"/>
+                <path d="M2 12h3M19 12h3M12 2v3M12 19v3"/>
+            </svg>
+            <span class="logo-text">North Pole Consensus</span>
+        </div>
+        <p class="tagline">Find the perfect movie for everyone</p>
+    </header>
 
-<form method="post" class="forms">
+    <div class="landing-sections">
+        <section class="landing-card create-section">
+            <div class="section-icon">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <circle cx="12" cy="12" r="10"/>
+                    <line x1="12" y1="8" x2="12" y2="16"/>
+                    <line x1="8" y1="12" x2="16" y2="12"/>
+                </svg>
+            </div>
+            <h2>Create Room</h2>
+            <p class="section-desc">Start a new movie session and invite your friends</p>
+            <form method="post" class="landing-form">
+                <div class="input-group">
+                    <label for="create-name">Your Name</label>
+                    <input type="text" id="create-name" placeholder="Enter your name" name="name" value="{{ name }}" required>
+                </div>
+                <button type="submit" name="create" class="btn-primary" formnovalidate>
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M12 5v14M5 12h14"/>
+                    </svg>
+                    Create Room
+                </button>
+            </form>
+        </section>
 
-    <h3>Enter a Movie Room</h3>
-    <div>
-        <label>Username</label>
-        <input type="text" placeholder="Enter your username" name="name" value="{{ name }}" required>
+        <div class="divider">
+            <span>or</span>
+        </div>
+
+        <section class="landing-card join-section">
+            <div class="section-icon">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4"/>
+                    <polyline points="10 17 15 12 10 7"/>
+                    <line x1="15" y1="12" x2="3" y2="12"/>
+                </svg>
+            </div>
+            <h2>Join Room</h2>
+            <p class="section-desc">Enter a room code to join an existing session</p>
+            <form method="post" class="landing-form">
+                <div class="input-group">
+                    <label for="join-name">Your Name</label>
+                    <input type="text" id="join-name" placeholder="Enter your name" name="name" value="{{ name }}" required>
+                </div>
+                <div class="input-group">
+                    <label for="room-code">Room Code</label>
+                    <input type="text" id="room-code" placeholder="Enter room code" name="code" value="{{ code }}" required>
+                </div>
+                <button type="submit" name="join" class="btn-secondary">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4"/>
+                        <polyline points="10 17 15 12 10 7"/>
+                        <line x1="15" y1="12" x2="3" y2="12"/>
+                    </svg>
+                    Join Room
+                </button>
+            </form>
+        </section>
     </div>
-
-    <div class="join">
-
-        <input type="text" placeholder="Enter a room code" name="code" value="{{ code }}" required>
-        <button type="submit" name="join">Join</button>
-
-    </div>
-    <button type="submit" name="create" formnovalidate>Create a Room</button>
 
     {% if error %}
-
-        <p>{{ error }}</p>
-
+    <div class="error-message">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <circle cx="12" cy="12" r="10"/>
+            <line x1="12" y1="8" x2="12" y2="12"/>
+            <line x1="12" y1="16" x2="12.01" y2="16"/>
+        </svg>
+        <span>{{ error }}</span>
+    </div>
     {% endif %}
-
-</form>
-
+</div>
 {% endblock %}
