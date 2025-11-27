@@ -357,17 +357,53 @@
       }
   }
 
-  // Initialize movie cards only if they exist (chat has started)
   const movieCards = document.querySelectorAll('.movie-card');
   if (movieCards.length > 0) {
     movieCards.forEach(card => initCard(card));
   }
 
-  // Listen for feed updates from other users
   socket.on('feed_update', (data) => {
       console.log('Feed updated by another user:', data.member_id);
       socket.emit('get_updated_feed');
   });
+
+  socket.on('voting_complete', (data) => {
+      const movies = data.top_movies;
+
+      const movieSection = document.querySelector('.movie-section');
+      if (movieSection) {
+          let resultsHTML = '<h2>🏆 Voting Results - Top 3 Movies! 🏆</h2>';
+          resultsHTML += '<div class="results-container">';
+
+          movies.forEach((movie, idx) => {
+              const medal = idx === 0 ? '🥇' : idx === 1 ? '🥈' : '🥉';
+              resultsHTML += `
+                  <div class="result-card" style="background: linear-gradient(135deg, rgba(115, 110, 225, ${0.3 - idx * 0.08}), rgba(235, 88, 85, ${0.2 - idx * 0.05})); padding: 2rem; border-radius: 15px; margin-bottom: 1.5rem; border: 2px solid rgba(115, 110, 225, ${0.5 - idx * 0.1});">
+                      <h3 style="font-size: 2.5rem; margin: 0; color: #fff;">${medal} #${idx + 1}</h3>
+                      <h2 style="font-size: 2rem; margin: 0.5rem 0; color: #fff;">${movie.title}</h2>
+                      <p style="font-size: 1.25rem; color: #ccc; margin: 0.5rem 0;">${movie.year} • ⭐ ${movie.rating}</p>
+                      <p style="font-size: 1.5rem; color: #2ecc71; margin: 0.5rem 0; font-weight: bold;">❤️ ${movie.likes} like(s)</p>
+                  </div>
+              `;
+          });
+
+          resultsHTML += '</div>';
+          movieSection.innerHTML = resultsHTML;
+      }
+
+      const content = `
+        <div class="text" style="background: rgba(115, 110, 225, 0.2); padding: 15px; border-radius: 8px; margin: 10px 0;">
+            <span>
+                <strong style="color: #736ee1;">🏆 VOTING COMPLETE!</strong><br/>
+                <p style="margin-top: 10px;">Check out the results in the movie section!</p>
+            </span>
+        </div>
+      `;
+      messages.innerHTML += content;
+      messages.scrollTop = messages.scrollHeight;
+  });
+
+  // Listen for feed updates from other users
 
   // Receive and render updated feed
   socket.on('updated_feed', (data) => {

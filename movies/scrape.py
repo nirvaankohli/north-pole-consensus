@@ -12,40 +12,54 @@ class scraper:
         self.movie_path = Path(__file__).parent / "results" / "movies.csv"
         self.base_url = "http://www.omdbapi.com/"
         self.df = pd.read_csv(self.movie_path)
+        self.df["id"] = self.df.index.astype(str)
+        self.selected_df = self.df.copy()
+        self.env_path = Path(__file__).parent.parent / ".env"
         if api_key == "use_local":
-            load_dotenv()
+            load_dotenv(dotenv_path=self.env_path)
             self.api_key = os.getenv("OMDB_API_KEY")
         else:
             self.api_key = api_key
 
+    def exclude_list_of_titles(self, exclude_titles):
+
+        return_exclude = self.selected_df[
+            self.selected_df["Title"].isin(exclude_titles)
+        ]
+        self.selected_df = self.selected_df[
+            ~self.selected_df["Title"].isin(exclude_titles)
+        ]
+
+        return self.selected_df, return_exclude
+
     def by_min_rating(self, min_rating):
 
-        self.selected_df = self.df[self.df["Rating"] >= min_rating]
+        self.selected_df = self.selected_df[self.selected_df["Rating"] >= min_rating]
 
         return self.selected_df
 
     def by_min_year(self, min_year):
 
-        self.selected_df = self.df[self.df["Year"] >= min_year]
+        self.selected_df = self.selected_df[self.selected_df["Year"] >= min_year]
 
         return self.selected_df
 
     def by_max_rating(self, max_rating):
 
-        self.selected_df = self.df[self.df["Rating"] <= max_rating]
+        self.selected_df = self.selected_df[self.selected_df["Rating"] <= max_rating]
 
         return self.selected_df
 
     def by_max_year(self, max_year):
 
-        self.selected_df = self.df[self.df["Year"] <= max_year]
+        self.selected_df = self.selected_df[self.selected_df["Year"] <= max_year]
 
         return self.selected_df
 
     def by_specific_title(self, title):
 
-        self.selected_df = self.df[
-            self.df["Title"].str.contains(title, case=False, na=False)
+        self.selected_df = self.selected_df[
+            self.selected_df["Title"].str.contains(title, case=False, na=False)
         ]
 
         return self.selected_df
@@ -116,7 +130,6 @@ class scraper:
             for idx, row in random_sample.iterrows():
 
                 movie_dict = row.to_dict()
-                movie_dict["id"] = str(idx)
                 movies.append(movie_dict)
 
             return movies
@@ -129,7 +142,6 @@ class scraper:
 
                 movie = self.get_random_movie(priority=priority, pool=pool)
                 movie_dict = movie.iloc[0].to_dict()
-                movie_dict["id"] = str(movie.index[0])
                 movies.append(movie_dict)
 
             return movies
@@ -161,8 +173,8 @@ class scraper:
 
         movies = {}
         for idx, row in df.iterrows():
-            movies[str(idx)] = {
-                "id": str(idx),
+            movies[row["id"]] = {
+                "id": row["id"],
                 "title": row["Title"],
                 "year": str(row["Year"]),
                 "rating": float(row["Rating"]),

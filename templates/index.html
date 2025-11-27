@@ -1,27 +1,382 @@
 {% extends 'base.html' %} {% block content %}
 
-<form method="post" class="forms">
+<div class="landing-page">
+  {% if error %}
+  <div class="error-message">
+    <p>{{ error }}</p>
+  </div>
+  {% endif %}
 
-    <h3>Enter a Movie Room</h3>
-    <div>
-        <label>Username</label>
-        <input type="text" placeholder="Enter your username" name="name" value="{{ name }}" required>
+  <div class="landing-header">
+    <div class="logo">North Pole Consensus</div>
+    <h1>Find the perfect movie together</h1>
+    <p>Collaborative voting made simple and elegant</p>
+  </div>
+
+  <div class="landing-sections">
+    <div class="landing-section join-section">
+      <h2>Join a Room</h2>
+      <p>Have a room code? Join your friends and start voting</p>
+      <form method="post" class="landing-form">
+        <div class="form-group">
+          <label>Your Name</label>
+          <input
+            type="text"
+            placeholder="Enter your name"
+            name="name"
+            value="{{ name }}"
+            required
+          />
+        </div>
+        <div class="form-group">
+          <label>Room Code</label>
+          <input
+            type="text"
+            placeholder="Enter 6-letter code"
+            name="code"
+            value="{{ code }}"
+            maxlength="6"
+            style="text-transform: uppercase"
+            required
+          />
+        </div>
+        <button type="submit" name="join" class="btn-primary">Join Room</button>
+      </form>
     </div>
 
-    <div class="join">
-
-        <input type="text" placeholder="Enter a room code" name="code" value="{{ code }}" required>
-        <button type="submit" name="join">Join</button>
-
+    <div class="landing-divider">
+      <span>OR</span>
     </div>
-    <button type="submit" name="create" formnovalidate>Create a Room</button>
 
-    {% if error %}
+    <div class="landing-section create-section">
+      <h2>Create a Room</h2>
+      <p>Start a new session and invite others to join</p>
+      <form method="post" class="landing-form">
+        <div class="form-group">
+          <label>Your Name</label>
+          <input
+            type="text"
+            placeholder="Enter your name"
+            name="name"
+            value="{{ name }}"
+            required
+          />
+        </div>
+        <button type="submit" name="create" class="btn-secondary">
+          Create New Room
+        </button>
+      </form>
+    </div>
+  </div>
 
-        <p>{{ error }}</p>
+  <div class="landing-features">
+    <div class="feature">
+      <h3>Survey-Based</h3>
+      <p>Set your preferences and minimum rating</p>
+    </div>
+    <div class="feature">
+      <h3>Collaborative</h3>
+      <p>Recommendations influenced by group choices</p>
+    </div>
+    <div class="feature">
+      <h3>Find Winners</h3>
+      <p>Top 3 movies revealed after voting</p>
+    </div>
+  </div>
+</div>
 
-    {% endif %}
+<style>
+  .landing-page {
+    max-width: 1400px;
+    margin: 0 auto;
+    padding: 3rem 2rem;
+  }
 
-</form>
+  .landing-header {
+    text-align: center;
+    margin-bottom: 5rem;
+    padding: 2rem 0;
+  }
+
+  .logo {
+    font-size: 1.2rem;
+    font-weight: 600;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--primary);
+    gap: 0px;
+    padding: 0px;
+    margin-bottom: 0.2rem;
+    opacity: 0.9;
+  }
+
+  .landing-header h1 {
+    font-size: 3.5rem;
+    font-weight: 400;
+    margin-bottom: 0.2rem;
+    margin: 0.5rem;
+    color: var(--fg);
+    line-height: 1.2;
+    letter-spacing: -0.02em;
+  }
+
+  .landing-header p {
+    font-size: 1.125rem;
+    color: var(--muted);
+    font-weight: 300;
+  }
+
+  .landing-sections {
+    display: grid;
+    grid-template-columns: 1fr auto 1fr;
+    gap: 3rem;
+    margin-bottom: 5rem;
+    align-items: start;
+  }
+
+  .landing-section {
+    background: linear-gradient(
+      135deg,
+      var(--panel-bg) 0%,
+      rgba(255, 255, 255, 0.01) 100%
+    );
+    border: 1px solid var(--panel-border);
+    border-radius: 16px;
+    padding: 3rem 2.5rem;
+    text-align: left;
+    transition: all 0.3s ease;
+    box-shadow: 0 4px 24px var(--panel-shadow);
+  }
+
+  .landing-section:hover {
+    border-color: rgba(115, 110, 225, 0.3);
+    box-shadow: 0 8px 32px var(--panel-shadow),
+      0 0 0 1px rgba(115, 110, 225, 0.1);
+    transform: translateY(-2px);
+  }
+
+  .landing-section h2 {
+    font-size: 1.5rem;
+    font-weight: 600;
+    margin-bottom: 0.75rem;
+    color: var(--fg);
+    letter-spacing: -0.01em;
+  }
+
+  .landing-section p {
+    color: var(--muted);
+    margin-bottom: 2rem;
+    font-size: 0.95rem;
+    line-height: 1.6;
+  }
+
+  .landing-form {
+    display: flex;
+    flex-direction: column;
+    gap: 1.5rem;
+  }
+
+  .form-group {
+    text-align: left;
+  }
+
+  .form-group label {
+    display: block;
+    margin-bottom: 0.625rem;
+    font-weight: 500;
+    font-size: 0.875rem;
+    color: var(--fg);
+    letter-spacing: 0.01em;
+  }
+
+  .form-group input {
+    width: 100%;
+    padding: 0.875rem 1rem;
+    background: rgba(255, 255, 255, 0.02);
+    border: 1px solid var(--panel-border);
+    border-radius: 10px;
+    color: var(--fg);
+    font-size: 1rem;
+    transition: all 0.2s ease;
+  }
+
+  .form-group input:focus {
+    outline: none;
+    border-color: var(--primary);
+    background: rgba(255, 255, 255, 0.03);
+    box-shadow: 0 0 0 3px rgba(115, 110, 225, 0.1);
+  }
+
+  .form-group input::placeholder {
+    color: rgba(154, 166, 178, 0.5);
+  }
+
+  .btn-primary,
+  .btn-secondary {
+    padding: 1rem 2rem;
+    border: none;
+    border-radius: 7px;
+    font-size: 0.9375rem;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s ease;
+
+    letter-spacing: 0.01em;
+    transition: all 1s ease-in-out;
+  }
+
+  .btn-primary {
+    border: 0.5px solid var(--light);
+    background: var(--primary);
+    color: var(--light);
+  }
+
+  .btn-primary:hover {
+    border: 0.5px solid var(--primary);
+    color: var(--primary);
+  }
+
+  .btn-primary:active {
+    transform: scale(0.98);
+  }
+
+  .btn-secondary {
+    background: var(--secondary);
+    border: 0.5px solid var(--light);
+
+    color: var(--light);
+    color: white;
+  }
+
+  .btn-secondary:hover {
+    border: 0.5px solid #e34441;
+    color: #e34441;
+  }
+
+  .btn-secondary:active {
+    transform: scale(0.98);
+  }
+
+  .btn-primary:hover,
+  .btn-secondary:hover {
+    scale: 1.1;
+    background: var(--panel-bg);
+  }
+
+  .landing-divider {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--muted);
+    font-weight: 400;
+    font-size: 0.875rem;
+    letter-spacing: 0.05em;
+  }
+
+  .landing-divider span {
+    background: var(--bg);
+    padding: 0.75rem 1.25rem;
+    border: 1px solid var(--panel-border);
+    border-radius: 50px;
+  }
+
+  .error-message {
+    background: rgba(255, 107, 107, 0.05);
+    border: 1px solid rgba(255, 107, 107, 0.3);
+    border-radius: 10px;
+    padding: 1rem 1.5rem;
+    text-align: center;
+    margin-bottom: 2rem;
+  }
+
+  .error-message p {
+    color: #ff9b9b;
+    margin: 0;
+    font-weight: 400;
+    font-size: 0.9375rem;
+  }
+
+  .landing-features {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 3rem;
+    margin-top: 5rem;
+    padding: 0 2rem;
+  }
+
+  .feature {
+    border: 1px solid var(--panel-border);
+    text-align: center;
+    padding: 2rem 1rem;
+    border-radius: 5px;
+    position: relative;
+  }
+
+  .feature::before {
+    content: "";
+    position: absolute;
+    top: 0;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 50%;
+    height: 1px;
+    background: linear-gradient(
+      90deg,
+      transparent,
+      var(--primary),
+      transparent
+    );
+    border-radius: 2px;
+  }
+
+  .feature h3 {
+    font-size: 1.125rem;
+    font-weight: 500;
+    margin-bottom: 0.625rem;
+    margin-top: 1rem;
+    color: var(--fg);
+    letter-spacing: -0.01em;
+  }
+
+  .feature p {
+    color: var(--muted);
+    font-size: 0.9375rem;
+    line-height: 1.6;
+    font-weight: 300;
+  }
+
+  @media (max-width: 968px) {
+    .landing-page {
+      padding: 2rem 1.5rem;
+    }
+
+    .landing-header {
+      margin-bottom: 3rem;
+    }
+
+    .landing-header h1 {
+      font-size: 2.5rem;
+    }
+
+    .landing-sections {
+      grid-template-columns: 1fr;
+      gap: 2rem;
+    }
+
+    .landing-divider {
+      margin: 0;
+    }
+
+    .landing-section {
+      padding: 2rem 1.5rem;
+    }
+
+    .landing-features {
+      grid-template-columns: 1fr;
+      gap: 2rem;
+      margin-top: 3rem;
+    }
+  }
+</style>
 
 {% endblock %}

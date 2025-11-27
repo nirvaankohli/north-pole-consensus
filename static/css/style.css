@@ -1,7 +1,6 @@
 @import url("https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;800&family=Libre+Baskerville:ital,wght@0,400;0,700;1,400&display=swap");
 
 :root {
-  /* base palette (kept from original) */
   --dark: #191919;
   --light: #ccd4db;
   --primary: #736ee1;
@@ -9,7 +8,7 @@
   --glass: rgba(255, 255, 255, 0.04);
   --muted: #9aa6b2;
   --danger: #ff6b6b;
-  --mono: "Courier New", Courier, monospace;
+  --mono: "Libre Baskerville";
   color-scheme: dark;
   --bg: var(--dark);
   --fg: var(--light);
@@ -29,10 +28,10 @@
   --grid-line: rgba(255, 255, 255, 0.01);
   --success: #2ecc71;
 
-  /* solid backgrounds (no transparency) */
+
   --panel-bg-solid: #0b1220;
 
-  /* neon shadows */
+
   --neon-1: rgba(115, 110, 225, 0.14);
   --neon-2: rgba(115, 110, 225, 0.06);
 
@@ -65,6 +64,19 @@ body {
   gap: 2rem;
   max-width: 1600px;
   margin: 0 auto;
+}
+
+.logo {
+
+  font-size: medium;
+
+}
+
+h1 {
+  font-size: 2.5rem;
+  margin-bottom: 1rem;
+  color: var(--title-color);
+  font-family: var(--mono);
 }
 
 @media (max-width: 1024px) {

@@ -65,15 +65,47 @@ def get_initial_random_feed(min_rating=None):
             min_rating = 7
 
         movie_scraper.by_min_rating(min_rating)
+
     else:
 
         movie_scraper.selected_df = movie_scraper.get_all()
 
+    max_suggestions = 0.7 * 10
+
+    try:
+
+        suggested_titles = rooms[session["room"]]["members"][session["member_id"]].get(
+            "suggested_from_llm", []
+        )
+
+    except Exception as e:
+
+        suggested_titles = []
+
+    max_suggestions = 0.7 * total_members_in_room * 10
+
+    if len(suggested_titles) > 0:
+
+        if len(suggested_titles) > max_suggestions:
+
+            suggested_titles = random.sample(suggested_titles, int(max_suggestions))
+
+        _, suggested_titles = movie_scraper.exclude_list_of_titles(suggested_titles)
+
+        suggested_titles = suggested_titles.to_dict(orient="records")
+
+    else:
+
+        suggested_titles = []
+
     random_movies = movie_scraper.get_random_movies(
-        n=10,
+        n=10 - len(suggested_titles),
         priority="Rating",
         pool=min(len(movie_scraper.selected_df) - 5, total_members_in_room * 19),
     )
+
+    random_movies.extend(suggested_titles)
+    print(random_movies, suggested_titles)
 
     movies = []
 
@@ -245,6 +277,42 @@ def load_rooms():
         return json.load(f)
 
 
+def check_voting_complete(room_data):
+    members = room_data["members"]
+    mutual_likes = room_data.get("mutual_likes", {})
+
+    if len(members) == 0:
+        return False, []
+
+    everyone_done_10 = all(
+        len(member["movie_choices"]) >= 10 for member in members.values()
+    )
+
+    if everyone_done_10:
+        top_movies = []
+        for movie_id, likers in mutual_likes.items():
+            top_movies.append(
+                {"movie_id": movie_id, "likes": len(likers), "likers": likers}
+            )
+
+        if len(top_movies) == 0:
+            for member in members.values():
+                for movie_id, choice in member["movie_choices"].items():
+                    if choice == "like":
+                        if not any(m["movie_id"] == movie_id for m in top_movies):
+                            top_movies.append(
+                                {"movie_id": movie_id, "likes": 1, "likers": []}
+                            )
+                        break
+                if len(top_movies) >= 3:
+                    break
+
+        top_movies.sort(key=lambda x: x["likes"], reverse=True)
+        return True, top_movies[:3]
+
+    return False, []
+
+
 clear_rooms()
 
 
@@ -268,6 +336,10 @@ def index():
 
     session.clear()
 
+    error = request.args.get("error")
+    code = request.args.get("code", "")
+    name = request.args.get("name", "")
+
     if request.method == "POST":
 
         name = request.form.get("name")
@@ -276,13 +348,13 @@ def index():
         create = request.form.get("create")
 
         if not name:
-            return render_template(
-                "index.html", error="Please enter a name.", code=code, name=name
+            return redirect(
+                url_for("index", error="Please enter a name.", code=code, name=name)
             )
 
         if join is not None and not code:
-            return render_template(
-                "index.html", error="Please enter a room code.", name=name
+            return redirect(
+                url_for("index", error="Please enter a room code.", name=name)
             )
 
         room = code
@@ -307,9 +379,7 @@ def index():
             update_rooms(rooms)
 
         elif code not in rooms:
-            return render_template(
-                "index.html", error="Room does not exist.", name=name
-            )
+            return redirect(url_for("index", error="Room does not exist.", name=name))
 
         session["room"] = room
         session["name"] = name
@@ -321,28 +391,26 @@ def index():
             and code in rooms
             and session["member_id"] not in rooms[code]["members"]
         ):
-            
-            if rooms[code].get("chat_started", False):
-            
-                return render_template(
-            
-                    "index.html",
-                    error="This room has already started. You cannot join.",
-                    name=name,
 
+            if rooms[code].get("chat_started", False):
+
+                return redirect(
+                    url_for(
+                        "index",
+                        error="This room has already started. You cannot join.",
+                        name=name,
+                    )
                 )
-            
+
             rooms[code]["members"][session["member_id"]] = default_member_rooms(
-            
                 session["name"]
-            
             )
-            
+
             update_rooms(rooms)
 
         return redirect(url_for("room", code=room))
 
-    return render_template("index.html")
+    return render_template("index.html", error=error, code=code, name=name)
 
 
 @app.route("/clear-sesh/<return_file>")
@@ -375,23 +443,19 @@ def prompt_name():
             return render_template(
                 "prompt_name.html", error="Please enter a name.", name=name
             )
-        
+
         session["name"] = name
         if "member_id" not in session:
             session["member_id"] = str(uuid.uuid4())
 
         if room in rooms:
-        
+
             if rooms[room].get("chat_started", False):
-        
+
                 session.clear()
-        
-                return render_template(
-                    "index.html",
-                    error="This room has already started. You cannot join.",
-        
-                )
-            )
+
+                return redirect(url_for("index"))
+
             rooms[room]["members"][session["member_id"]] = default_member_rooms(name)
             update_rooms(rooms)
 
@@ -423,15 +487,15 @@ def room(code):
         return redirect(url_for("prompt_name"))
 
     if code not in rooms:
-        return render_template("index.html", error="Room does not exist.")
 
+        return redirect(url_for("index", error="Room does not exist."))
     member_id = session.get("member_id")
 
     if member_id not in rooms[code]["members"] and rooms[code].get(
         "chat_started", False
     ):
-        return render_template(
-            "index.html", error="This room has already started. You cannot join."
+        return redirect(
+            url_for("index", error="This room has already started. You cannot join.")
         )
 
     is_host = rooms[code]["host"] == member_id
@@ -504,6 +568,44 @@ def movie_choice(data):
 
         update_rooms(rooms)
 
+        member_choices = len(rooms[room]["members"][member_id]["movie_choices"])
+        print(f"Member {member_id} has made {member_choices} choices")
+
+        is_complete, top_movies = check_voting_complete(rooms[room])
+
+        if is_complete and not rooms[room].get("voting_complete", False):
+            rooms[room]["voting_complete"] = True
+            update_rooms(rooms)
+
+            print(f"Voting complete! Top movies: {top_movies}")
+
+            movie_details = []
+            for movie_info in top_movies:
+                movie_id = movie_info["movie_id"]
+                found = False
+                for idx, row in movie_scraper.df.iterrows():
+                    if str(idx) == movie_id or str(row.get("id", "")) == str(movie_id):
+                        movie_details.append(
+                            {
+                                "title": row["Title"],
+                                "year": str(row["Year"]),
+                                "rating": float(row["Rating"]),
+                                "likes": movie_info["likes"],
+                            }
+                        )
+                        found = True
+                        break
+                if not found:
+                    print(f"Warning: Could not find movie with id {movie_id}")
+
+            print(f"Emitting voting_complete with {len(movie_details)} movies")
+            emit(
+                "voting_complete",
+                {"top_movies": movie_details},
+                to=room,
+                broadcast=True,
+            )
+
         emit("feed_update", {"member_id": member_id}, to=room, include_self=False)
 
 
@@ -555,6 +657,11 @@ def message(data):
 
 @socketio.on("survey")
 def survey(data):
+
+    import movies.ai as movies_ai
+
+    llm_cli = movies_ai.llm()
+
     rooms = load_rooms()
     room = session.get("room")
     member_id = session.get("member_id")
@@ -563,6 +670,17 @@ def survey(data):
         return
 
     rooms[room]["members"][member_id]["survey"] = data["data"]
+
+    try:
+
+        rooms[room]["members"][member_id]["suggested_from_llm"] = (
+            llm_cli.suggest_titles_based_on_preferences(data["data"]["preferences"])
+        )
+
+    except Exception as e:
+
+        rooms[room]["members"][member_id]["suggested_from_llm"] = []
+
     update_rooms(rooms)
 
 
