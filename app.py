@@ -259,8 +259,6 @@ def calculate_personalized_feed(room_data, member_id, min_rating=None):
     return sorted_movies[:5]
 
 
-
-
 def update_rooms(rooms_data):
     try:
         with open(JSON_ROOMS, "w") as f:
@@ -308,8 +306,6 @@ def check_voting_complete(room_data):
         return True, top_movies[:3]
 
     return False, []
-
-
 
 
 def generate_code(rooms, length=6):
@@ -874,4 +870,5 @@ def disconnect():
 
 
 if __name__ == "__main__":
-    socketio.run(app, debug=True, host="0.0.0.0", port=5000, allow_unsafe_werkzeug=True)
+
+    socketio.run(app, host="0.0.0.0", port=5000)
