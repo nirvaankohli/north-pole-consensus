@@ -259,7 +259,6 @@ def calculate_personalized_feed(room_data, member_id, min_rating=None):
     return sorted_movies[:5]
 
 
-clear_rooms()
 
 
 def update_rooms(rooms_data):
@@ -311,7 +310,6 @@ def check_voting_complete(room_data):
     return False, []
 
 
-clear_rooms()
 
 
 def generate_code(rooms, length=6):
