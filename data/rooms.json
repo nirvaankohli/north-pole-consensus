@@ -45,5 +45,60 @@
             ]
         },
         "voting_complete": true
+    },
+    "ALYIXD": {
+        "members": {
+            "b26210db-753c-4342-adf9-4056f75937cb": {
+                "name": "Mood Mirror",
+                "is_host": true,
+                "survey": {
+                    "preferences": "thjgjrkb",
+                    "min_rating": 4
+                },
+                "movie_choices": {
+                    "38": "dislike",
+                    "4": "dislike",
+                    "3": "dislike",
+                    "2": "dislike",
+                    "1": "dislike",
+                    "0": "dislike"
+                },
+                "suggested_from_llm": [
+                    "It's a Wonderful Life",
+                    "A Christmas Story",
+                    "Elf",
+                    "Home Alone",
+                    "Miracle on 34th Street"
+                ]
+            }
+        },
+        "host": "b26210db-753c-4342-adf9-4056f75937cb",
+        "chat_started": true,
+        "data": [],
+        "mutual_likes": {}
+    },
+    "TBCOIK": {
+        "members": {
+            "0ce3e331-cf75-4256-bf49-1324bdf5f235": {
+                "name": "Resume Reader",
+                "is_host": true,
+                "survey": {
+                    "preferences": "whatever",
+                    "min_rating": 4
+                },
+                "movie_choices": {},
+                "suggested_from_llm": [
+                    "It's a Wonderful Life",
+                    "A Christmas Story",
+                    "Home Alone",
+                    "Elf",
+                    "The Nightmare Before Christmas"
+                ]
+            }
+        },
+        "host": "0ce3e331-cf75-4256-bf49-1324bdf5f235",
+        "chat_started": true,
+        "data": [],
+        "mutual_likes": {}
     }
 }

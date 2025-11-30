@@ -3,6 +3,9 @@ from pathlib import Path
 from dotenv import load_dotenv
 import os
 import requests
+import logging
+
+logger = logging.getLogger(__name__)
 
 
 class scraper:
@@ -18,8 +21,15 @@ class scraper:
         if api_key == "use_local":
             load_dotenv(dotenv_path=self.env_path)
             self.api_key = os.getenv("OMDB_API_KEY")
+            if not self.api_key:
+                logger.error("OMDB_API_KEY not found in .env file!")
+            else:
+                logger.info(
+                    f"OMDB API Key loaded: {self.api_key[:4]}...{self.api_key[-4:]}"
+                )
         else:
             self.api_key = api_key
+            logger.info("Using provided API key")
 
     def exclude_list_of_titles(self, exclude_titles):
 
@@ -183,13 +193,24 @@ class scraper:
         return movies
 
     def get_info_from_params(self, params):
+        if not self.api_key:
+            logger.error("Cannot make OMDB request - API key not set")
+            return {"Response": "False", "Error": "API key not configured"}
 
         params["apikey"] = self.api_key
 
-        r = requests.get(f"{self.base_url}", params=params)
-        data = r.json()
-
-        return data
+        try:
+            logger.debug(f"OMDB Request: {self.base_url} with params: {params}")
+            r = requests.get(f"{self.base_url}", params=params, timeout=5)
+            data = r.json()
+            logger.debug(f"OMDB Response: {data}")
+            return data
+        except requests.exceptions.Timeout:
+            logger.error("OMDB API request timed out")
+            return {"Response": "False", "Error": "Request timeout"}
+        except Exception as e:
+            logger.error(f"OMDB API request failed: {str(e)}")
+            return {"Response": "False", "Error": str(e)}
 
     def get_info_from_title(self, title):
 
@@ -198,18 +219,46 @@ class scraper:
         return self.get_info_from_params(params)
 
     def enrich_movie_details(self, title, year=None):
+        logger.info(f"Enriching movie: '{title}' ({year if year else 'no year'})")
+
         try:
             info = self.get_info_from_title(title)
-            if info and info.get("Response") == "True":
+
+            if not info:
+                logger.warning(f"Movie '{title}' - No response from OMDB")
+                return self._default_movie_details()
+
+            if info.get("Response") == "True":
+                poster = info.get("Poster", "N/A")
+                plot = info.get("Plot", "No description available.")
+
+                if poster and poster != "N/A":
+                    logger.info(f"✓ Movie '{title}' - Poster found: {poster[:50]}...")
+                else:
+                    logger.warning(f"✗ Movie '{title}' - No poster available")
+
+                if plot and plot != "No description available.":
+                    logger.info(f"✓ Movie '{title}' - Plot found: {plot[:50]}...")
+                else:
+                    logger.warning(f"✗ Movie '{title}' - No plot available")
+
                 return {
-                    "poster": info.get("Poster", "N/A"),
-                    "plot": info.get("Plot", "No description available."),
+                    "poster": poster,
+                    "plot": plot,
                     "genre": info.get("Genre", "N/A"),
                     "director": info.get("Director", "N/A"),
                     "actors": info.get("Actors", "N/A"),
                 }
-        except:
-            pass
+            else:
+                error_msg = info.get("Error", "Unknown error")
+                logger.warning(f"✗ Movie '{title}' - OMDB returned error: {error_msg}")
+                return self._default_movie_details()
+
+        except Exception as e:
+            logger.error(f"✗ Movie '{title}' - Exception: {str(e)}", exc_info=True)
+            return self._default_movie_details()
+
+    def _default_movie_details(self):
         return {
             "poster": "N/A",
             "plot": "No description available.",

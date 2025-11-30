@@ -434,13 +434,16 @@ h1 {
   display: flex;
   flex-direction: column;
   overflow-y: auto;
+  position: relative;
 }
 
 .poster-img {
   width: 100%;
   height: auto;
-  max-height: 300px;
+  min-height: 300px;
+  max-height: 400px;
   object-fit: cover;
+  display: block;
 }
 
 .movie-info {
@@ -451,6 +454,10 @@ h1 {
     rgba(0, 0, 0, 0.9)
   );
   flex: 1;
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
 }
 
 .movie-info h3 {
