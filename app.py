@@ -19,6 +19,12 @@ import uuid
 import csv
 from collections import defaultdict
 from movies.scrape import scraper
+import logging
+
+logging.basicConfig(
+    level=logging.INFO, format="%(asctime)s - %(name)s - %(levelname)s - %(message)s"
+)
+logger = logging.getLogger(__name__)
 
 ENV_PATH = Path(__file__).parent / ".env"
 JSON_ROOMS = Path(__file__).parent / "data" / "rooms.json"
@@ -30,6 +36,7 @@ app.config["SECRET_KEY"] = os.getenv("SECRET_KEY")
 socketio = SocketIO(app)
 
 movie_scraper = scraper(api_key="use_local")
+base_url = os.getenv("BASE_URL", "http://127.0.0.1:5000/")
 
 
 def clear_rooms():
@@ -45,7 +52,7 @@ def default_member_rooms(name, is_host=False):
         "name": name,
         "is_host": is_host,
         "survey": {"preferences": None, "min_rating": None},
-        "movie_choices": {},  # {movie_id: "like" | "dislike"}
+        "movie_choices": {},
     }
 
 
@@ -82,7 +89,7 @@ def get_initial_random_feed(min_rating=None):
 
         suggested_titles = []
 
-    max_suggestions = 0.7 * total_members_in_room * 10
+    max_suggestions = 0.7 * total_members_in_room * 20
 
     if len(suggested_titles) > 0:
 
@@ -99,13 +106,12 @@ def get_initial_random_feed(min_rating=None):
         suggested_titles = []
 
     random_movies = movie_scraper.get_random_movies(
-        n=10 - len(suggested_titles),
+        n=20 - len(suggested_titles),
         priority="Rating",
-        pool=min(len(movie_scraper.selected_df) - 5, total_members_in_room * 19),
+        pool=min(len(movie_scraper.selected_df) - 5, total_members_in_room * 30),
     )
 
     random_movies.extend(suggested_titles)
-    print(random_movies, suggested_titles)
 
     movies = []
 
@@ -152,7 +158,6 @@ def calculate_personalized_feed(room_data, member_id, min_rating=None):
             "rating": float(row["Rating"]),
         }
 
-    # Filter out already rated movies
     unrated_movies = {
         mid: m for mid, m in all_movies.items() if mid not in current_choices
     }
@@ -227,26 +232,19 @@ def calculate_personalized_feed(room_data, member_id, min_rating=None):
             mutual_likes_boost = num_likes * (2 + num_likes)
 
         preference_boost = 0
+        details = movie_scraper.enrich_movie_details(movie["title"], movie["year"])
+        movie["poster"] = details.get("poster", "N/A")
+        movie["plot"] = details.get("plot", "No description available.")
+        movie["genre"] = details.get("genre", "N/A")
+        movie["director"] = details.get("director", "N/A")
+        movie["actors"] = details.get("actors", "N/A")
+
         if user_preferences:
-            details = movie_scraper.enrich_movie_details(movie["title"], movie["year"])
             movie_text = (
                 f"{details['genre']} {details['actors']} {details['director']}".lower()
             )
             if any(pref in movie_text for pref in user_preferences.split()):
                 preference_boost = 2
-
-            movie["poster"] = details["poster"]
-            movie["plot"] = details["plot"]
-            movie["genre"] = details["genre"]
-            movie["director"] = details["director"]
-            movie["actors"] = details["actors"]
-        else:
-            details = movie_scraper.enrich_movie_details(movie["title"], movie["year"])
-            movie["poster"] = details["poster"]
-            movie["plot"] = details["plot"]
-            movie["genre"] = details["genre"]
-            movie["director"] = details["director"]
-            movie["actors"] = details["actors"]
 
         final_score = (
             collaborative_score * 2.5
@@ -280,15 +278,24 @@ def load_rooms():
 def check_voting_complete(room_data):
     members = room_data["members"]
     mutual_likes = room_data.get("mutual_likes", {})
+    total_members = len(members)
 
-    if len(members) == 0:
+    if total_members == 0:
         return False, []
 
     everyone_done_10 = all(
         len(member["movie_choices"]) >= 10 for member in members.values()
     )
 
-    if everyone_done_10:
+    everyone_done_20 = all(
+        len(member["movie_choices"]) >= 20 for member in members.values()
+    )
+
+    has_universal_like = any(
+        len(likers) == total_members for likers in mutual_likes.values()
+    )
+
+    if everyone_done_20 or (everyone_done_10 and has_universal_like):
         top_movies = []
         for movie_id, likers in mutual_likes.items():
             top_movies.append(
@@ -296,16 +303,7 @@ def check_voting_complete(room_data):
             )
 
         if len(top_movies) == 0:
-            for member in members.values():
-                for movie_id, choice in member["movie_choices"].items():
-                    if choice == "like":
-                        if not any(m["movie_id"] == movie_id for m in top_movies):
-                            top_movies.append(
-                                {"movie_id": movie_id, "likes": 1, "likers": []}
-                            )
-                        break
-                if len(top_movies) >= 3:
-                    break
+            return True, []
 
         top_movies.sort(key=lambda x: x["likes"], reverse=True)
         return True, top_movies[:3]
@@ -373,7 +371,7 @@ def index():
                 "host": member_id,
                 "chat_started": False,
                 "data": [],
-                "mutual_likes": {},  # {"movie_id": [member_ids who liked it]}
+                "mutual_likes": {},
             }
 
             update_rooms(rooms)
@@ -512,13 +510,12 @@ def room(code):
 
             min_rating = user_survey.get("min_rating")
 
-        personalized_feed = calculate_personalized_feed(
-            rooms[code], member_id, min_rating=min_rating
-        )
+        personalized_feed = get_initial_random_feed(min_rating=min_rating)
 
     return render_template(
         "room.html",
         code=code,
+        base_url=base_url,
         messages=rooms[code]["data"],
         is_host=is_host,
         chat_started=chat_started,
@@ -533,10 +530,15 @@ def movie_choice(data):
     member_id = session.get("member_id")
 
     if room not in rooms:
+        logger.warning(f"Movie choice from unknown room: {room}")
         return
 
     movie_id = data.get("movie_id")
     choice = data.get("choice")
+
+    logger.info(
+        f"Member {member_id} in room {room} chose {choice} for movie {movie_id}"
+    )
 
     if movie_id and choice in ["like", "dislike"]:
         rooms[room]["members"][member_id]["movie_choices"][movie_id] = choice
@@ -569,7 +571,7 @@ def movie_choice(data):
         update_rooms(rooms)
 
         member_choices = len(rooms[room]["members"][member_id]["movie_choices"])
-        print(f"Member {member_id} has made {member_choices} choices")
+        logger.info(f"Member {member_id} has made {member_choices} choices")
 
         is_complete, top_movies = check_voting_complete(rooms[room])
 
@@ -577,36 +579,59 @@ def movie_choice(data):
             rooms[room]["voting_complete"] = True
             update_rooms(rooms)
 
-            print(f"Voting complete! Top movies: {top_movies}")
-
-            movie_details = []
-            for movie_info in top_movies:
-                movie_id = movie_info["movie_id"]
-                found = False
-                for idx, row in movie_scraper.df.iterrows():
-                    if str(idx) == movie_id or str(row.get("id", "")) == str(movie_id):
-                        movie_details.append(
-                            {
-                                "title": row["Title"],
-                                "year": str(row["Year"]),
-                                "rating": float(row["Rating"]),
-                                "likes": movie_info["likes"],
-                            }
-                        )
-                        found = True
-                        break
-                if not found:
-                    print(f"Warning: Could not find movie with id {movie_id}")
-
-            print(f"Emitting voting_complete with {len(movie_details)} movies")
-            emit(
-                "voting_complete",
-                {"top_movies": movie_details},
-                to=room,
-                broadcast=True,
+            logger.info(
+                f"Voting complete in room {room}! Top movies: {len(top_movies)}"
             )
 
-        emit("feed_update", {"member_id": member_id}, to=room, include_self=False)
+            if len(top_movies) == 0:
+                logger.warning(f"No mutual likes found in room {room}")
+                emit(
+                    "voting_complete",
+                    {
+                        "top_movies": [],
+                        "message": "Sorry we can't find a movie for you",
+                    },
+                    to=room,
+                    broadcast=True,
+                )
+            else:
+                movie_details = []
+                for movie_info in top_movies:
+                    movie_id = movie_info["movie_id"]
+                    found = False
+                    for idx, row in movie_scraper.df.iterrows():
+                        if str(idx) == movie_id or str(row.get("id", "")) == str(
+                            movie_id
+                        ):
+                            movie_details.append(
+                                {
+                                    "title": row["Title"],
+                                    "year": str(row["Year"]),
+                                    "rating": float(row["Rating"]),
+                                    "likes": movie_info["likes"],
+                                }
+                            )
+                            found = True
+                            break
+
+                logger.info(f"Emitting {len(movie_details)} top movies to room {room}")
+                emit(
+                    "voting_complete",
+                    {"top_movies": movie_details},
+                    to=room,
+                    broadcast=True,
+                )
+        else:
+            min_votes = min(
+                len(member["movie_choices"])
+                for member in rooms[room]["members"].values()
+            )
+            logger.info(f"Room {room} min_votes: {min_votes}")
+            if min_votes >= 10:
+                logger.info(f"Requesting feed update for room {room}")
+                emit(
+                    "feed_update", {"member_id": member_id}, to=room, include_self=False
+                )
 
 
 @socketio.on("get_updated_feed")
@@ -617,7 +642,10 @@ def get_updated_feed():
     member_id = session.get("member_id")
 
     if room not in rooms:
+        logger.warning(f"get_updated_feed: Room {room} not found")
         return
+
+    logger.info(f"Getting updated feed for member {member_id} in room {room}")
 
     user_survey = rooms[room]["members"][member_id].get("survey", {})
     min_rating = None
@@ -630,6 +658,7 @@ def get_updated_feed():
         rooms[room], member_id, min_rating=min_rating
     )
 
+    logger.info(f"Sending {len(personalized_feed)} movies to member {member_id}")
     emit("updated_feed", {"movies": personalized_feed})
 
 
@@ -666,48 +695,106 @@ def survey(data):
     room = session.get("room")
     member_id = session.get("member_id")
 
+    logger.info(f"Survey received from member {member_id} in room {room}")
+
     if room not in rooms:
+        logger.warning(f"Survey: Room {room} not found")
+        return
+
+    if member_id not in rooms[room]["members"]:
+        logger.warning(f"Survey: Member {member_id} not in room {room}")
         return
 
     rooms[room]["members"][member_id]["survey"] = data["data"]
+    logger.info(f"Survey saved for member {member_id}")
 
     try:
 
         rooms[room]["members"][member_id]["suggested_from_llm"] = (
             llm_cli.suggest_titles_based_on_preferences(data["data"]["preferences"])
         )
+        logger.info(f"LLM suggestions generated for member {member_id}")
 
     except Exception as e:
 
+        logger.error(f"Error getting LLM suggestions: {e}")
         rooms[room]["members"][member_id]["suggested_from_llm"] = []
 
     update_rooms(rooms)
 
+    check_surveys = check_all_surveys_complete(rooms[room])
+    logger.info(f"Survey status for room {room}: {check_surveys}")
 
-@socketio.on("start_chat")
-def start_chat():
+    emit(
+        "survey_received",
+        {"success": True, "message": "Survey submitted successfully!"},
+    )
+    emit("all_surveys_complete", check_surveys, to=room, broadcast=True)
+
+
+@socketio.on("check_all_surveys_complete")
+def handle_check_surveys():
     rooms = load_rooms()
     room = session.get("room")
-    member_id = session.get("member_id")
 
     if room not in rooms:
         return
 
-    for member in rooms[room]["members"]:
+    check_surveys = check_all_surveys_complete(rooms[room])
+    emit("all_surveys_complete", check_surveys, to=room, broadcast=True)
 
-        survey = rooms[room]["members"][member]["survey"]
+
+def check_all_surveys_complete(room_data):
+    members = room_data["members"]
+    pending_count = 0
+
+    for member_id, member in members.items():
+        survey = member.get("survey", {})
         if isinstance(survey, dict):
             if survey.get("preferences") is None or survey.get("min_rating") is None:
-                return
+                pending_count += 1
         else:
-
             if None in survey:
-                return
+                pending_count += 1
 
-    if rooms[room]["host"] == member_id:
-        rooms[room]["chat_started"] = True
-        update_rooms(rooms)
-        emit("chat_started", to=room)
+    return {"ready": pending_count == 0, "pending": pending_count}
+
+
+@socketio.on("start_chat")
+def start_chat():
+
+    rooms = load_rooms()
+    room = session.get("room")
+    member_id = session.get("member_id")
+
+    logger.info(f"Start chat requested by member {member_id} in room {room}")
+
+    if room not in rooms:
+        logger.warning(f"Start chat: Room {room} not found")
+        return
+
+    if rooms[room]["host"] != member_id:
+        logger.warning(f"Start chat: Member {member_id} is not host")
+        return
+
+    check_surveys = check_all_surveys_complete(rooms[room])
+    logger.info(f"Survey check before starting: {check_surveys}")
+
+    if not check_surveys["ready"]:
+
+        logger.warning(f"Cannot start chat, {check_surveys['pending']} surveys pending")
+        emit(
+            "start_chat_error",
+            {
+                "message": f"Cannot start: {check_surveys['pending']} member(s) haven't submitted preferences yet."
+            },
+        )
+        return
+
+    logger.info(f"Starting chat in room {room}")
+    rooms[room]["chat_started"] = True
+    update_rooms(rooms)
+    emit("chat_started", to=room, broadcast=True)
 
 
 @socketio.on("connect")
@@ -718,7 +805,12 @@ def connect(auth):
     room = session.get("room")
     name = session.get("name")
 
+    logger.info(
+        f"Socket connect: room={room}, name={name}, member_id={session.get('member_id')}"
+    )
+
     if not room or not name:
+        logger.warning("Connect: No room or name in session")
         return
 
     try:
@@ -728,22 +820,24 @@ def connect(auth):
             and session.get("member_id") in rooms[room]["members"].keys()
         ):
 
-            # likely the host
-
             join_room(room)
             send({"name": name, "message": "has entered the room"}, to=room)
+            logger.info(f"Host {name} joined room {room}")
 
             return
         if room not in rooms:
             leave_room(room)
+            logger.warning(f"Room {room} does not exist")
             return
 
     except Exception as e:
 
+        logger.error(f"Error checking room membership: {e}")
         pass
 
     join_room(room)
     send({"name": name, "message": "has entered the room"}, to=room)
+    logger.info(f"{name} joined room {room}")
 
     member_id = session.get("member_id")
 
@@ -751,11 +845,14 @@ def connect(auth):
 
         if member_id and member_id not in rooms[room]["members"]:
             if rooms[room].get("chat_started", False):
+                logger.warning(f"Member {member_id} tried to join started room {room}")
                 return
             rooms[room]["members"][member_id] = default_member_rooms(name)
+            logger.info(f"Added member {member_id} to room {room}")
 
     except Exception as e:
 
+        logger.error(f"Error adding member to room: {e}")
         pass
 
     update_rooms(rooms)

@@ -1,163 +1,148 @@
 {% extends 'base.html' %} {% block content %}
 
-<div class="container">
-  {% if chat_started %}
-  <div class="movie-section">
-    <h2>Discover Movies ({{movies|length}} available)</h2>
-    <div id="card-stack" class="card-stack">
-      {% for movie in movies %}
-      <div
-        class="movie-card"
-        data-movie-id="{{movie.id}}"
-        style="z-index: {{loop.index0}}"
-      >
-        <div class="movie-poster">
-          {% if movie.poster and movie.poster != 'N/A' %}
-          <img
-            src="{{movie.poster}}"
-            alt="{{movie.title}}"
-            class="poster-img"
+<div class="room-container">
+  {% if not chat_started %}
+  <div class="setup-container">
+    <div class="setup-header">
+      <h1>Room Setup</h1>
+      <div class="room-code-display">
+        <span class="code-label">Room Code</span>
+        <span class="code-value">{{code}}</span>
+        <button class="link" onclick="copyText('{{base_url}}room/{{ code }}')">
+          Copy Link 🔗
+        </button>
+      </div>
+    </div>
+
+    <div class="survey-card">
+      <h2>Your Preferences</h2>
+      <p class="survey-description">Help us find movies you'll love</p>
+
+      <div class="survey-form">
+        <div class="form-field">
+          <label for="preferences">What do you enjoy?</label>
+          <textarea
+            id="preferences"
+            rows="4"
+            placeholder="Tell us about your favorite genres, actors, directors, or themes..."
+          ></textarea>
+        </div>
+
+        <div class="form-field">
+          <label for="min_rating">Minimum Rating</label>
+          <input
+            type="number"
+            id="min_rating"
+            min="1"
+            max="10"
+            step="0.1"
+            placeholder="7.0"
           />
-          {% endif %}
-          <div class="movie-info">
-            <h3>{{movie.title}}</h3>
-            <p class="movie-meta">{{movie.year}} • ⭐ {{movie.rating}}</p>
-            {% if movie.genre and movie.genre != 'N/A' %}
-            <p class="movie-genre">{{movie.genre}}</p>
-            {% endif %} {% if movie.plot and movie.plot != 'No description
-            available.' %}
-            <p class="movie-plot">{{movie.plot}}</p>
+          <span class="field-hint">IMDB rating from 1-10</span>
+        </div>
+
+        <button onclick="submitSurvey()" class="btn-submit hover-effect">
+          Submit Preferences
+        </button>
+      </div>
+    </div>
+
+    {% if is_host %}
+    <div class="host-controls">
+      <button
+        id="start-chat-btn"
+        onClick="startChat()"
+        class="btn-start hover-effect"
+        disabled
+      >
+        Start Session
+      </button>
+      <p class="host-note" id="host-status">
+        Everyone must submit their preferences first
+      </p>
+    </div>
+    {% endif %}
+  </div>
+  {% else %}
+  <div class="session-container">
+    <div class="movie-section">
+      <div class="section-header">
+        <h2>Discover Movies</h2>
+        <span class="movie-count">{{movies|length}} available</span>
+      </div>
+
+      <div id="card-stack" class="card-stack">
+        {% for movie in movies %}
+        <div
+          class="movie-card"
+          data-movie-id="{{movie.id}}"
+          style="z-index: {{loop.index0}}"
+        >
+          <div class="movie-poster">
+            {% if movie.poster and movie.poster != 'N/A' %}
+            <img
+              src="{{movie.poster}}"
+              alt="{{movie.title}}"
+              class="poster-img"
+            />
             {% endif %}
+            <div class="movie-info">
+              <h3>{{movie.title}}</h3>
+              <p class="movie-meta">{{movie.year}} • ⭐ {{movie.rating}}</p>
+              {% if movie.genre and movie.genre != 'N/A' %}
+              <p class="movie-genre">{{movie.genre}}</p>
+              {% endif %} {% if movie.plot and movie.plot != 'No description
+              available.' %}
+              <p class="movie-plot">{{movie.plot}}</p>
+              {% endif %}
+            </div>
+          </div>
+        </div>
+        {% endfor %}
+        <div id="no-more-cards" class="no-cards" style="display: none">
+          <div class="empty-state">
+            <div class="empty-icon">🎬</div>
+            <h3>No more movies!</h3>
+            <p>Wait for others to rate movies...</p>
           </div>
         </div>
       </div>
-      {% endfor %}
-      <div id="no-more-cards" class="no-cards" style="display: none">
-        <p>🎬</p>
-        <p>No more movies!</p>
-        <p class="small">Wait for others to rate movies...</p>
+
+      <div class="swipe-buttons">
+        <button class="btn-dislike" onclick="swipeLeft()">
+          <span class="icon">✕</span>
+        </button>
+        <button class="btn-like" onclick="swipeRight()">
+          <span class="icon">✓</span>
+        </button>
       </div>
     </div>
-    <div class="swipe-buttons">
-      <button class="btn-dislike" onclick="swipeLeft()">
-        <span class="icon">✕</span>
-      </button>
-      <button class="btn-like" onclick="swipeRight()">
-        <span class="icon">✓</span>
-      </button>
-    </div>
-  </div>
-  {% endif %}
 
-  <div class="chat-section">
-    <div class="message-box">
-      <h2>Chat Room: {{code}}</h2>
+    <div class="chat-section">
+      <div class="chat-header">
+        <h3>Room {{code}}</h3>
+      </div>
       <div class="messages" id="messages"></div>
-      <div class="inputs">
-        <input
-          type="text"
-          rows="3"
-          placeholder="Message"
-          name="message"
-          id="message"
-          {%
-          if
-          not
-          chat_started
-          %}disabled{%
-          endif
-          %}
-        />
-        <button
-          type="button"
-          name="send"
-          id="send-btn"
-          onClick="sendMessage()"
-          {%
-          if
-          not
-          chat_started
-          %}disabled{%
-          endif
-          %}
-        >
+      <div class="chat-input">
+        <input type="text" placeholder="Send a message..." id="message" />
+        <button type="button" id="send-btn" onClick="sendMessage()">
           Send
         </button>
       </div>
-      <div class="true-false-buttons" style="margin-top: 10px">
-        <button
-          type="button"
-          onClick="sendTrue()"
-          style="background-color: green; color: white"
-          id="true-btn"
-          {%
-          if
-          not
-          chat_started
-          %}disabled{%
-          endif
-          %}
-        >
-          True
-        </button>
-        <button
-          type="button"
-          onClick="sendFalse()"
-          style="background-color: red; color: white"
-          id="false-btn"
-          {%
-          if
-          not
-          chat_started
-          %}disabled{%
-          endif
-          %}
-        >
-          False
-        </button>
-      </div>
-
-      {% if not chat_started %}
-      <div class="survey-form">
-        <h3>Survey</h3>
-        <label for="preferences">Any preferences? (genres, actors, etc.)</label>
-        <textarea
-          id="preferences"
-          rows="3"
-          placeholder="e.g., I love action movies and Tom Hanks"
-        ></textarea>
-
-        <label for="min_rating">Minimum IMDB Rating (1-10)</label>
-        <input
-          type="number"
-          id="min_rating"
-          min="1"
-          max="10"
-          step="0.1"
-          placeholder="7.0"
-        />
-
-        <button onclick="submitSurvey()">Submit Survey</button>
-      </div>
-      {% endif %} {% if is_host and not chat_started %}
-      <div style="margin-top: 10px">
-        <button
-          id="start-chat-btn"
-          onClick="startChat()"
-          style="background-color: blue; color: white"
-        >
-          Start Chat
-        </button>
-      </div>
-      {% endif %}
     </div>
   </div>
+  {% endif %}
 </div>
 
+<style></style>
+
 <script type="text/javascript">
+
+
   const messages = document.getElementById("messages");
 
   const createMessage = (name, msg) => {
+    if (!messages) return;
     const content = `
       <div class="text">
           <span>
@@ -191,18 +176,29 @@
   };
 
   const startChat = () => {
-      socket.emit("start_chat");
+
+    console.log("Starting chat...");
+    socket.emit("start_chat");
   };
 
+  socket.on("start_chat_error", (data) => {
+      alert(data.message);
+  });
+
   socket.on("chat_started", () => {
-      document.getElementById("message").disabled = false;
-      document.getElementById("send-btn").disabled = false;
-      document.getElementById("true-btn").disabled = false;
-      document.getElementById("false-btn").disabled = false;
+      console.log('Chat started event received, reloading page...');
+      const msgInput = document.getElementById("message");
+      const sendBtn = document.getElementById("send-btn");
+      const trueBtn = document.getElementById("true-btn");
+      const falseBtn = document.getElementById("false-btn");
       const startBtn = document.getElementById("start-chat-btn");
+
+      if (msgInput) msgInput.disabled = false;
+      if (sendBtn) sendBtn.disabled = false;
+      if (trueBtn) trueBtn.disabled = false;
+      if (falseBtn) falseBtn.disabled = false;
       if (startBtn) startBtn.style.display = "none";
 
-      // Reload page to show movies
       location.reload();
   });
 
@@ -211,6 +207,8 @@
   };
 
   const submitSurvey = () => {
+
+
       const preferences = document.getElementById('preferences').value;
       const minRating = parseFloat(document.getElementById('min_rating').value);
 
@@ -219,16 +217,64 @@
           return;
       }
 
-      socket.emit('survey', {
-          data: {
-              preferences: preferences,
-              min_rating: minRating
-          }
-      });
+      console.log('Submitting survey:', { preferences, min_rating: minRating });
 
-      document.querySelector('.survey-form').style.display = 'none';
-      alert('Survey submitted!');
+      if (!socket || !socket.connected) {
+          alert('Not connected to server. Please refresh and try again.');
+          console.error('Socket not connected');
+          return;
+      }
+
+      try {
+          socket.emit('survey', {
+              data: {
+                  preferences: preferences,
+                  min_rating: minRating
+              }
+          });
+          console.log('Survey emit called successfully');
+      } catch (error) {
+          console.error('Error emitting survey:', error);
+          alert('Error submitting survey. Please try again.');
+      }
   };
+
+  let surveySubmitted = false;
+
+  socket.on('survey_received', (data) => {
+      console.log('Survey received by server:', data);
+      surveySubmitted = true;
+      const surveyForm = document.querySelector('.survey-form');
+      if (surveyForm) surveyForm.style.display = 'none';
+      alert('Survey submitted successfully!');
+      socket.emit('check_all_surveys_complete');
+  });
+
+  setTimeout(() => {
+      if (surveySubmitted) {
+          console.log('Survey was successfully submitted');
+      }
+  }, 1000);
+
+  socket.on('all_surveys_complete', (data) => {
+      const startBtn = document.getElementById('start-chat-btn');
+      const hostStatus = document.getElementById('host-status');
+      if (startBtn) {
+          if (data.ready) {
+              startBtn.disabled = false;
+              if (hostStatus) {
+                  hostStatus.textContent = 'All members ready! You can start now.';
+                  hostStatus.style.color = '#2ecc71';
+              }
+          } else {
+              startBtn.disabled = true;
+              if (hostStatus) {
+                  hostStatus.textContent = `Waiting for ${data.pending} member(s) to submit preferences...`;
+                  hostStatus.style.color = 'var(--muted)';
+              }
+          }
+      }
+  });
 
   // Tinder-style swipe functionality
   let isDragging = false;
@@ -352,6 +398,7 @@
       const noCardsMsg = document.getElementById('no-more-cards');
       if (cards.length === 0) {
           noCardsMsg.style.display = 'flex';
+          socket.emit('get_updated_feed');
       } else {
           noCardsMsg.style.display = 'none';
       }
@@ -403,9 +450,9 @@
       messages.scrollTop = messages.scrollHeight;
   });
 
-  // Listen for feed updates from other users
 
-  // Receive and render updated feed
+
+
   socket.on('updated_feed', (data) => {
       const cardStack = document.getElementById('card-stack');
       if (!cardStack) return; // Only update if movie section exists
@@ -454,6 +501,19 @@
 
       checkNoCards();
   });
+
+  function copyText(text) {
+
+      navigator.clipboard.writeText(text).then(() => {
+          alert('Link copied to clipboard!');
+      }).catch(err => {
+          console.error('Failed to copy text: ', err);
+      });
+  }
+
+  {% if not chat_started %}
+  socket.emit('check_all_surveys_complete');
+  {% endif %}
 
   // Load existing messages
   {% for msg in messages %}
